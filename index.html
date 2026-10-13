@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>commitCanvasV2</title>
+    <style>
+      :root {
+        --bg: #ffffff;
+        --fg: #1f2328;
+        --muted: #656d76;
+        --border: #d0d7de;
+        --level-0: #ebedf0;
+        --level-1: #9be9a8;
+        --level-2: #40c463;
+        --level-3: #30a14e;
+        --level-4: #216e39;
+        --accent: #216e39;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0d1117;
+          --fg: #e6edf3;
+          --muted: #8d96a0;
+          --border: #30363d;
+          --level-0: #161b22;
+          --level-1: #0e4429;
+          --level-2: #006d32;
+          --level-3: #26a641;
+          --level-4: #39d353;
+          --accent: #2ea043;
+        }
+      }
+
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100dvh;
+        display: grid;
+        place-items: center;
+        padding: 5rem 1rem;
+        background: var(--bg);
+        color: var(--fg);
+        font: 15px/1.5 system-ui, sans-serif;
+      }
+      main { width: min(100%, 780px); display: grid; gap: 1rem; }
+      h1 { margin: 0; font-size: 1.5rem; }
+      p { margin: 0; }
+      .muted { color: var(--muted); }
+
+      /* Controls */
+      select, input, button {
+        font: inherit;
+        color: inherit;
+        background: transparent;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 0.35rem 0.7rem;
+      }
+      button { cursor: pointer; }
+      button.confirm { position: relative; overflow: hidden; min-width: 5rem; } /* min-width keeps layout steady when the label becomes "Clear?" */
+      button.confirm.pending::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: var(--muted);
+        opacity: 0.3;
+        pointer-events: none;
+        transform-origin: left;
+        animation: countdown var(--confirm-ms) linear forwards;
+      }
+      @keyframes countdown { to { transform: scaleX(0); } }
+      button:hover { border-color: var(--muted); }
+      button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+      :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+      .row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }
+      .row .spacer { margin-left: auto; }
+      .row > input { flex: 1; min-width: 9rem; }
+
+      /* Brush picker: hidden radios, visible swatches */
+      .brush { display: flex; gap: 0.4rem; align-items: center; }
+      .brush label { display: block; cursor: pointer; }
+      .brush input { position: absolute; opacity: 0; pointer-events: none; }
+      .brush span {
+        display: grid;
+        place-items: center;
+        width: 22px;
+        height: 22px;
+        border-radius: 5px;
+        border: 1px solid var(--border);
+        color: var(--muted);
+      }
+      .brush span[data-level="0"] {
+        --line: transparent calc(50% - 1px), var(--muted) calc(50% - 1px), var(--muted) calc(50% + 1px), transparent calc(50% + 1px);
+        background-image: linear-gradient(45deg, var(--line)), linear-gradient(-45deg, var(--line));
+        background-size: 60% 60%;
+        background-position: center;
+        background-repeat: no-repeat;
+      }
+      .brush input:checked + span { outline: 2px solid var(--fg); outline-offset: 1px; }
+      .brush input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+      /* Contribution graph */
+      #graph {
+        display: grid;
+        grid-template-rows: repeat(7, 12px);
+        grid-auto-flow: column;
+        grid-auto-columns: 12px;
+        gap: 2px;
+        justify-content: center;
+        overflow-x: auto;
+        padding: 1rem;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        cursor: crosshair;
+        touch-action: none;
+        user-select: none;
+      }
+      .cell { border-radius: 2px; }
+      .outside { visibility: hidden; }
+      [data-level="0"] { background: var(--level-0); }
+      [data-level="1"] { background: var(--level-1); }
+      [data-level="2"] { background: var(--level-2); }
+      [data-level="3"] { background: var(--level-3); }
+      [data-level="4"] { background: var(--level-4); }
+
+      /* Overlays just below the generate row, so showing it never moves the graph */
+      .actions { position: relative; }
+      #status { position: absolute; top: 100%; left: 0; right: 0; margin-top: 0.4rem; font-size: 0.9em; color: var(--muted); }
+      #status:empty { display: none; }
+      #next-steps { margin-top: 1.25rem; } /* leaves room for the status line above it */
+
+      ol, ul { margin: 0; padding-left: 1.25rem; }
+      details { font-size: 0.9em; color: var(--muted); }
+      summary { cursor: pointer; }
+      details > :not(summary) { margin-top: 0.5rem; }
+      pre, code, kbd { font-family: ui-monospace, monospace; font-size: 0.9em; }
+      pre { margin: 0; color: var(--fg); padding: 0.75rem 1rem; overflow-x: auto; border: 1px solid var(--border); border-radius: 6px; background: var(--level-0); }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div>
+        <h1>commitCanvasV2</h1>
+        <p class="muted">Draw on a mock GitHub contribution graph, then generate a repo that paints it onto your real one.</p>
+        <details>
+          <summary>More details</summary>
+          <ul>
+            <li>Click or drag on the graph to draw. The swatches pick the shade: darker means more commits that day, and × erases.</li>
+            <li>Use the name and email of your GitHub account. The email must be one on your account, or the commits won't count.</li>
+            <li>Generate downloads a zip of a git repository with one commit per brush stroke, dated for the chosen year. Steps to push it appear below once it's downloaded.</li>
+          </ul>
+        </details>
+      </div>
+
+      <div class="row">
+        <label>Year <select id="year"></select></label>
+        <div class="row spacer">
+          <div class="brush" role="radiogroup" aria-label="Brush">
+            <label title="Erase"><input type="radio" name="level" value="0" /><span data-level="0"></span></label>
+            <label title="Level 1"><input type="radio" name="level" value="1" /><span data-level="1"></span></label>
+            <label title="Level 2"><input type="radio" name="level" value="2" /><span data-level="2"></span></label>
+            <label title="Level 3"><input type="radio" name="level" value="3" /><span data-level="3"></span></label>
+            <label title="Level 4"><input type="radio" name="level" value="4" checked /><span data-level="4"></span></label>
+          </div>
+          <button id="fill" class="confirm" type="button">Fill</button>
+          <button id="clear" class="confirm" type="button">Clear</button>
+        </div>
+      </div>
+
+      <div id="graph"></div>
+
+      <div class="row actions">
+        <input id="name" required placeholder="GitHub name" aria-label="GitHub name" autocomplete="name" />
+        <input id="email" type="email" required placeholder="GitHub email" aria-label="GitHub email" autocomplete="email" />
+        <button id="generate" class="primary" type="button">Generate repository</button>
+        <p id="status"></p>
+      </div>
+
+      <details id="next-steps" hidden>
+        <summary>Push it to GitHub, step by step</summary>
+        <ol>
+          <li>Create a new <strong>empty</strong> repository on GitHub (no README or .gitignore).</li>
+          <li>Unzip the download. The <code>.git</code> folder is hidden: on a Mac press <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>.</kbd> in Finder to see it.</li>
+          <li>Open a terminal in the unzipped folder and run these, using your repository's URL:</li>
+        </ol>
+        <pre id="commands"></pre>
+        <p>The art appears on your profile once the push finishes (it can take a few minutes). It only counts if the repo is public, or if you've turned on private contributions in your GitHub profile settings.</p>
+      </details>
+    </main>
+    <script type="module" src="src/main.js"></script>
+  </body>
+</html>
