@@ -1,24 +1,26 @@
 # commitCanvasV2
 
-Draw in a mock GitHub contribution graph, pick a year, and get a git repository that paints your art on your real graph. Everything runs in the browser — no server.
+Draw in a mock GitHub contribution graph, pick a year, and get a git repository that paints your art on your real graph. Everything is generated in the browser and uploaded by the user to github manually.
 
 ## Run
 
 ```sh
-npm ci # (or `npm install` to install latest patches)
-npm start   # serves at http://localhost:3000 (set PORT to change)
+npm ci
+npm start
+open http:localhost:3000
 ```
 
-No install or build step: it is plain JavaScript (typed with JSDoc and `// @ts-check`) running directly in the browser, served via `serve`.
+No build step required: it is plain JavaScript (typed with JSDoc and `// @ts-check`) running directly in the browser, served via `serve`.
+
 ## Use
 
 1. Pick a year and draw. Columns are weeks starting Sunday, matching GitHub.
-2. Enter the name and email **of your GitHub account** (the email must be on your account, or the commits won't count).
-3. Click **Generate repository** and unzip the download (the `.git` folder is hidden in Finder; press Cmd+Shift+. to see it).
+2. Enter the name and email **of your GitHub account** (the email must be on your account, or the commits won't count). _This data remains local and is only used to attribute the art to your account._
+3. Click **Generate repository** and unzip the download (the `.git` folder is hidden in Finder; press Cmd+Shift+. if you would like to see it).
 4. In the unzipped folder:
 
 ```sh
-git reset            # sync the index with the generated commits
+git reset # sync the index with the generated commits
 git remote add origin https://github.com/<you>/<new-repo>.git
 git push -u origin main
 ```
