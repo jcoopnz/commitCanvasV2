@@ -5,10 +5,11 @@ Draw in a mock GitHub contribution graph, pick a year, and get a git repository 
 ## Run
 
 ```sh
+npm ci # (or `npm install` to install latest patches)
 npm start   # serves at http://localhost:3000 (set PORT to change)
 ```
 
-No install or build step: it is plain JavaScript (typed with JSDoc and `// @ts-check`) running directly in the browser, served by a dependency-free Node script.
+No install or build step: it is plain JavaScript (typed with JSDoc and `// @ts-check`) running directly in the browser, served via `serve`.
 ## Use
 
 1. Pick a year and draw. Columns are weeks starting Sunday, matching GitHub.
