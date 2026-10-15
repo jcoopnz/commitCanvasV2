@@ -20,7 +20,6 @@ No build step required: it is plain JavaScript (typed with JSDoc and `// @ts-che
 4. In the unzipped folder:
 
 ```sh
-git reset # sync the index with the generated commits
 git remote add origin https://github.com/<you>/<new-repo>.git
 git push -u origin main
 ```

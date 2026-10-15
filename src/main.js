@@ -17,6 +17,21 @@ const emailEl = /** @type {HTMLInputElement} */ ($("email"))
 const statusEl = $("status")
 const commandsEl = $("commands")
 const nextStepsEl = $("next-steps")
+const noticeEl = $("notice")
+const dismissNoticeEl = $("dismiss-notice")
+
+try {
+  if (localStorage.getItem("notice-dismissed") === "true") {
+    noticeEl?.remove()
+  }
+} catch {}
+
+dismissNoticeEl?.addEventListener("click", () => {
+  noticeEl?.remove()
+  try {
+    localStorage.setItem("notice-dismissed", "true")
+  } catch {}
+})
 
 const grid = emptyGrid()
 let level = 4
@@ -144,10 +159,9 @@ $("generate").addEventListener("click", async () => {
   statusEl.textContent = `Generating ${times.length} commits...`
   const files = await buildRepo(name, email, times)
   download(zip(files.map((file) => ({ ...file, path: `${FOLDER}/${file.path}` }))), `${FOLDER}.zip`)
-  statusEl.textContent = `Downloaded ${FOLDER}.zip (${times.length} commits). Push it to a new GitHub repo, steps below.`
+  statusEl.textContent = `Downloaded ${FOLDER}.zip (equiv. ${times.length} commits). Push it to a new GitHub repo, steps below.`
   commandsEl.textContent = [
     `cd ${FOLDER}`,
-    "git reset   # one-time: syncs git's index with the generated commits",
     "git remote add origin https://github.com/<you>/<repo>.git",
     "git push -u origin main",
   ].join("\n")

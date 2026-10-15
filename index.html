@@ -42,10 +42,13 @@
         background: var(--bg);
         color: var(--fg);
         font: 15px/1.5 system-ui, sans-serif;
+        text-wrap: pretty;
       }
       main { width: min(100%, 780px); display: grid; gap: 1rem; }
-      h1 { margin: 0; font-size: 1.5rem; }
-      p { margin: 0; }
+      main > * { min-width: 0; }
+      hgroup { margin: 0; }
+      h1 { margin: 0 0 0.25rem; font-size: 1.5rem; text-wrap: balance; }
+      p { margin: 0; text-wrap: pretty; }
       .muted { color: var(--muted); }
 
       /* Controls */
@@ -125,34 +128,74 @@
       [data-level="3"] { background: var(--level-3); }
       [data-level="4"] { background: var(--level-4); }
 
-      /* Overlays just below the generate row, so showing it never moves the graph */
-      .actions { position: relative; }
-      #status { position: absolute; top: 100%; left: 0; right: 0; margin-top: 0.4rem; font-size: 0.9em; color: var(--muted); }
+      #status { width: 100%; font-size: 0.9em; color: var(--muted); }
       #status:empty { display: none; }
-      #next-steps { margin-top: 1.25rem; } /* leaves room for the status line above it */
+
+      .notice {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.6rem;
+        margin-top: 0.75rem;
+        padding: 0.6rem 0.85rem;
+        background: var(--level-0);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        font-size: 0.875rem;
+        line-height: 1.45;
+      }
+      .notice-icon { font-size: 1rem; flex-shrink: 0; }
+      .notice-content { flex: 1; min-width: 0; }
+      .notice strong { color: var(--fg); }
+      button.notice-dismiss {
+        border: none;
+        padding: 0 0.25rem;
+        margin: -0.2rem -0.2rem 0 0;
+        font-size: 1.25rem;
+        line-height: 1;
+        color: var(--muted);
+        cursor: pointer;
+      }
+      button.notice-dismiss:hover {
+        color: var(--fg);
+        border-color: transparent;
+      }
 
       ol, ul { margin: 0; padding-left: 1.25rem; }
-      details { font-size: 0.9em; color: var(--muted); }
-      summary { cursor: pointer; }
+      li + li { margin-top: 0.35rem; }
+      details { font-size: 0.9em; color: var(--muted); min-width: 0; }
+      header details { margin-top: 0.75rem; }
+      summary { cursor: pointer; font-weight: 500; text-wrap: balance; }
       details > :not(summary) { margin-top: 0.5rem; }
       pre, code, kbd { font-family: ui-monospace, monospace; font-size: 0.9em; }
-      pre { margin: 0; color: var(--fg); padding: 0.75rem 1rem; overflow-x: auto; border: 1px solid var(--border); border-radius: 6px; background: var(--level-0); }
+      pre { margin: 0; color: var(--fg); padding: 0.75rem 1rem; overflow-x: auto; max-width: 100%; border: 1px solid var(--border); border-radius: 6px; background: var(--level-0); }
     </style>
   </head>
   <body>
     <main>
-      <div>
-        <h1>commitCanvasV2</h1>
-        <p class="muted">Draw on a mock GitHub contribution graph, then generate a repo that paints it onto your real one.</p>
+      <header>
+        <hgroup>
+          <h1>commitCanvasV2</h1>
+          <p class="muted">Draw on a mock GitHub contribution graph, then generate a repository to paint the design onto your real GitHub profile.</p>
+        </hgroup>
+
+        <div id="notice" class="notice">
+          <span class="notice-icon" aria-hidden="true">🔒</span>
+          <div class="notice-content">
+            <strong>Runs 100% locally on your device:</strong> Nothing is sent anywhere. All commits are generated directly in your browser without contacting any external servers. Your GitHub details don't go anywhere and you manually upload the repository to GitHub yourself.
+          </div>
+          <button id="dismiss-notice" class="notice-dismiss" type="button" aria-label="Dismiss notice">&times;</button>
+        </div>
+
         <details>
-          <summary>More details</summary>
-          <ul>
-            <li>Click or drag on the graph to draw. The swatches pick the shade: darker means more commits that day, and × erases.</li>
-            <li>Use the name and email of your GitHub account. The email must be one on your account, or the commits won't count.</li>
-            <li>Generate downloads a zip of a git repository with one commit per brush stroke, dated for the chosen year. Steps to push it appear below once it's downloaded.</li>
-          </ul>
+          <summary>How to use</summary>
+          <ol>
+            <li><strong>Draw your design:</strong> Click or drag on the graph to draw. Choose a shade using the color swatches (darker green represents more commits on that day; <strong>&times;</strong> erases).</li>
+            <li><strong>Enter your details:</strong> Provide the name and email address associated with your GitHub account so GitHub attributes the commits to your profile. <em>(This stays on your device and is only written into your local git commit records.)</em></li>
+            <li><strong>Generate repository:</strong> Click &ldquo;Generate repository&rdquo; to download a zip archive containing the generated Git history.</li>
+            <li><strong>Manually push to GitHub:</strong> Unzip the download and run the terminal commands shown below to upload the commits to your GitHub account.</li>
+          </ol>
         </details>
-      </div>
+      </header>
 
       <div class="row">
         <label>Year <select id="year"></select></label>
@@ -178,15 +221,15 @@
         <p id="status"></p>
       </div>
 
-      <details id="next-steps" hidden>
-        <summary>Push it to GitHub, step by step</summary>
+      <details id="next-steps" hidden open>
+        <summary>Push to GitHub (step by step)</summary>
         <ol>
-          <li>Create a new <strong>empty</strong> repository on GitHub (no README or .gitignore).</li>
-          <li>Unzip the download. The <code>.git</code> folder is hidden: on a Mac press <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>.</kbd> in Finder to see it.</li>
-          <li>Open a terminal in the unzipped folder and run these, using your repository's URL:</li>
+          <li>Create a new <strong>empty repository</strong> on GitHub (leave &ldquo;Add a README file&rdquo; unchecked, and do not add a .gitignore or license).</li>
+          <li>Unzip the downloaded <code>commit-canvas-art.zip</code> file.</li>
+          <li>Open your terminal, navigate into the unzipped folder, and run the following commands (replace the URL with your new repository's URL):</li>
         </ol>
         <pre id="commands"></pre>
-        <p>The art appears on your profile once the push finishes (it can take a few minutes). It only counts if the repo is public, or if you've turned on private contributions in your GitHub profile settings.</p>
+        <p class="muted">Once pushed, GitHub will process the commits and display your art on your profile (this can take a few minutes). If your repository is private, make sure &ldquo;Private contributions&rdquo; is enabled in your GitHub profile settings.</p>
       </details>
     </main>
     <script type="module" src="src/main.js"></script>
