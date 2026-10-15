@@ -14,6 +14,7 @@ const graphEl = $("graph")
 const yearEl = /** @type {HTMLSelectElement} */ ($("year"))
 const nameEl = /** @type {HTMLInputElement} */ ($("name"))
 const emailEl = /** @type {HTMLInputElement} */ ($("email"))
+const profileLinkEl = /** @type {HTMLButtonElement} */ ($("profile-link"))
 const statusEl = $("status")
 const commandsEl = $("commands")
 const nextStepsEl = $("next-steps")
@@ -44,6 +45,32 @@ document.querySelectorAll("input[name=level]").forEach((input) =>
   input.addEventListener("change", () => (level = Number(/** @type {HTMLInputElement} */ (input).value))),
 )
 yearEl.addEventListener("change", render)
+
+function getProfileUrl() {
+  const raw = nameEl.value.trim()
+  const username = raw.replace(/^https?:\/\/(www\.)?github\.com\//i, "").replace(/^@/, "").replace(/\/+$/, "")
+  return username ? `https://github.com/${encodeURIComponent(username)}` : null
+}
+
+function updateProfileLink() {
+  const url = getProfileUrl()
+  profileLinkEl.disabled = !url
+}
+
+profileLinkEl.addEventListener("click", () => {
+  const url = getProfileUrl()
+  if (url) window.open(url, "_blank", "noopener,noreferrer")
+})
+profileLinkEl.addEventListener("auxclick", (e) => {
+  if (e.button === 1) {
+    const url = getProfileUrl()
+    if (url) window.open(url, "_blank", "noopener,noreferrer")
+  }
+})
+
+nameEl.addEventListener("input", updateProfileLink)
+nameEl.addEventListener("change", updateProfileLink)
+updateProfileLink()
 
 const CONFIRM_MS = 3000
 
